@@ -49,7 +49,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 alt="Logo" 
                 className="w-full h-full object-contain"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = "https://cdn-icons-png.flaticon.com/512/3063/3063204.png";
+                  (e.target as HTMLImageElement).src = "https://raw.githubusercontent.com/hhieu16221027/VST-system/refs/heads/main/logo.png";
                 }}
               />
             </div>
