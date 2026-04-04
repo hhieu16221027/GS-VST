@@ -36,8 +36,8 @@ export const AUTH_KEY = 'hand_hygiene_auth_v2';
 export const ALLOWED_USERS = [
   { username: 'hhieu.ksnk', password: 'hohieuksnk', fullName: 'Bs. Hiếu', role: 'admin' },
   { username: 'duyen.ksnk', password: 'cpduyenksnk', fullName: 'DDT. Duyên', role: 'observer' },
-  { username: 'thuy.ksnk', password: 'ntbthuyksnk', fullName: 'Bs. Thuỷ', role: 'observer' }
-  { username: 'phuong.ksnk', password: 'ttbphuongksnk', fullName: 'Dd. Phương', role: 'observer' }
-  { username: 'hien.ksnk', password: 'pthienksnk', fullName: 'Dd. Hiền', role: 'observer' }
+  { username: 'thuy.ksnk', password: 'ntbthuyksnk', fullName: 'Bs. Thuỷ', role: 'observer' },
+  { username: 'phuong.ksnk', password: 'ttbphuongksnk', fullName: 'Dd. Phương', role: 'observer' },
+  { username: 'hien.ksnk', password: 'pthienksnk', fullName: 'Dd. Hiền', role: 'observer' },
   { username: 'tam.ksnk', password: 'vttamksnk', fullName: 'Dd. Tâm', role: 'observer' }
 ];
