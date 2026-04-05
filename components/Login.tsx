@@ -137,7 +137,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
         <div className="text-center">
           <p className="text-slate-400 text-[12px] font-bold uppercase tracking-widest">
-            Phiên bản 2.0.1 • 2024
+            Phiên bản 2.0.1 • 2026
           </p>
         </div>
       </div>
