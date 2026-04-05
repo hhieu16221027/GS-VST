@@ -473,7 +473,7 @@ const App: React.FC = () => {
                 <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-4">
                   <UserCircle className="text-blue-500" size={24} />
                   <div>
-                    <p className="text-[11px] font-black text-slate-300 uppercase leading-none mb-1.5 tracking-wider">Người giám sát thực hiện</p>
+                    <p className="text-[11px] font-black text-slate-300 uppercase leading-none mb-1.5 tracking-wider">Người giám sát</p>
                     <p className="font-black text-slate-800 text-[16px] truncate">{selectedSession.observer}</p>
                   </div>
                 </div>
