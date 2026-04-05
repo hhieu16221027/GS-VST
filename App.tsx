@@ -447,7 +447,7 @@ const App: React.FC = () => {
                   Đăng xuất tài khoản
                 </button>
                 <p className="text-center text-slate-300 text-[12px] font-bold uppercase tracking-widest mt-6">
-                  Phiên bản 2.0.1 • Bệnh viện Tân Phú
+                  Phiên bản 2.0.1 • Bệnh viện Đa khoa Tân Phú
                 </p>
               </div>
           </div>
