@@ -34,7 +34,11 @@ export const NON_HYGIENE_ACTIONS: Action[] = ["Không VST", "Mang găng và khô
 export const AUTH_KEY = 'hand_hygiene_auth_v2';
 
 export const ALLOWED_USERS = [
-  { username: 'admin', password: '123', fullName: 'Quản trị viên', role: 'admin' },
-  { username: 'giamsat1', password: '123', fullName: 'Giám sát viên 01', role: 'observer' },
-  { username: 'giamsat2', password: '123', fullName: 'Giám sát viên 02', role: 'observer' }
+  { username: 'hhieu.ksnk', password: 'hhieu.ksnk', fullName: 'Bs. Hiếu', role: 'admin' },
+  { username: 'ntbthuy.ksnk', password: 'ntbthuy.ksnk', fullName: 'Bs. Thuỷ', role: 'observer' },
+  { username: 'cpduyen.ksnk', password: 'cpduyen.ksnk', fullName: 'DDT. Duyên', role: 'observer' },
+  { username: 'ttbphuong.ksnk', password: 'ttbphuong.ksnk', fullName: 'Dd. Phương', role: 'observer' },
+  { username: 'pthien.ksnk', password: 'pthien.ksnk', fullName: 'Dd. Hiền', role: 'observer' },
+  { username: 'vttam.ksnk', password: 'vttam.ksnk', fullName: 'Dd. Tâm', role: 'observer' },
+  { username: 'htkchau.ksnk', password: 'htkchau.ksnk', fullName: 'PTK. Châu', role: 'observer' }
 ];
