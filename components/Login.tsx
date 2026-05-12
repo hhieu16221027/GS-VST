@@ -49,7 +49,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 alt="Logo" 
                 className="w-full h-full object-contain"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = "https://raw.githubusercontent.com/hhieu16221027/VST-system/refs/heads/main/logo.png";
+                  (e.target as HTMLImageElement).src = "https://cdn-icons-png.flaticon.com/512/3063/3063204.png";
                 }}
               />
             </div>
@@ -137,7 +137,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
         <div className="text-center">
           <p className="text-slate-400 text-[12px] font-bold uppercase tracking-widest">
-            Phiên bản 2.0.1 • 2026
+            Phiên bản 2.0.1 • 2024
           </p>
         </div>
       </div>

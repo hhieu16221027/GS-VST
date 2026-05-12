@@ -7,13 +7,13 @@ import Login from './components/Login';
 import { 
   Plus, History, LayoutDashboard, FileText, Loader2, 
   CloudUpload, X, UserCircle, Briefcase, Zap, Calendar, ChevronRight,
-  TrendingUp, BarChart3, LogOut
+  TrendingUp, BarChart3, LogOut, Users
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 
 const STORAGE_KEY = 'hand_hygiene_data_v2';
 const SCRIPT_URL_KEY = 'hand_hygiene_script_url_v2';
-const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXmB7F2gHRlTMDJThk2THi5Sd7qvstN_eIqncvrPZqL97ZG_8vmdYx7rJggA4yTmeP/exec";
+const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzGv74IHYtiWbOXrLWL6dON472L1sEOJbWHEGOUvTI2hDtifr1k-WpjBlkxnKREm5ms/exec";
 const DEFAULT_LOGO_FALLBACK = "https://raw.githubusercontent.com/hhieu16221027/VST-system/refs/heads/main/logo.png";
 
 const generateId = () => Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -45,7 +45,8 @@ const App: React.FC = () => {
       indications: [],
       action: "VST với cồn",
       procedure: "Đúng",
-      staffName: ""
+      staffName: "",
+      patientType: null
     }
   ]);
 
@@ -67,7 +68,11 @@ const App: React.FC = () => {
     }
     
     const storedUrl = localStorage.getItem(SCRIPT_URL_KEY);
-    if (storedUrl) {
+    // Cập nhật: Luôn ưu tiên dùng DEFAULT_SCRIPT_URL nếu nó khác với link cũ trong máy
+    if (storedUrl !== DEFAULT_SCRIPT_URL) {
+      setScriptUrl(DEFAULT_SCRIPT_URL);
+      localStorage.setItem(SCRIPT_URL_KEY, DEFAULT_SCRIPT_URL);
+    } else if (storedUrl) {
       setScriptUrl(storedUrl);
     } else {
       setScriptUrl(DEFAULT_SCRIPT_URL);
@@ -82,7 +87,8 @@ const App: React.FC = () => {
       indications: [],
       action: "VST với cồn",
       procedure: "Đúng",
-      staffName: ""
+      staffName: "",
+      patientType: null
     }]);
   };
 
@@ -116,6 +122,15 @@ const App: React.FC = () => {
       return;
     }
 
+    const deptsWithPatientType = ["Nội - Nhiễm", "Ngoại tổng hợp", "Phụ sản", "Nhi"];
+    if (deptsWithPatientType.includes(department)) {
+      const incompletePatientType = observations.some(obs => !obs.patientType);
+      if (incompletePatientType) {
+        alert("Vui lòng chọn KHU VỰC (Nội trú/Ngoại trú) cho tất cả các lượt quan sát.");
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     const now = new Date();
     const timestamp = now.toLocaleDateString('vi-VN') + ' ' + now.toLocaleTimeString('vi-VN');
@@ -141,6 +156,7 @@ const App: React.FC = () => {
           department: session.department,
           staffName: obs.staffName || '---',
           profession: obs.profession,
+          khuVuc: obs.patientType || 'N/A',
           indication: (obs.indications || []).join(', '),
           action: obs.action,
           procedure: obs.procedure || 'N/A',
@@ -163,7 +179,8 @@ const App: React.FC = () => {
         indications: [],
         action: "VST với cồn",
         procedure: "Đúng",
-        staffName: ""
+        staffName: "",
+        patientType: null
       }]);
       
       setTimeout(() => {
@@ -303,7 +320,14 @@ const App: React.FC = () => {
 
               <div className="space-y-4">
                 {observations.map((obs, idx) => (
-                  <ObservationRow key={obs.id} index={idx} observation={obs} onUpdate={handleUpdateObservation} onDelete={handleDeleteObservation} />
+                  <ObservationRow 
+                    key={obs.id} 
+                    index={idx} 
+                    observation={obs} 
+                    department={department}
+                    onUpdate={handleUpdateObservation} 
+                    onDelete={handleDeleteObservation} 
+                  />
                 ))}
               </div>
               
@@ -447,7 +471,7 @@ const App: React.FC = () => {
                   Đăng xuất tài khoản
                 </button>
                 <p className="text-center text-slate-300 text-[12px] font-bold uppercase tracking-widest mt-6">
-                  Phiên bản 2.0.1 • Bệnh viện Đa khoa Tân Phú
+                  Phiên bản 2.0.1 • Bệnh viện Tân Phú
                 </p>
               </div>
           </div>
@@ -473,7 +497,7 @@ const App: React.FC = () => {
                 <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-4">
                   <UserCircle className="text-blue-500" size={24} />
                   <div>
-                    <p className="text-[11px] font-black text-slate-300 uppercase leading-none mb-1.5 tracking-wider">Người giám sát</p>
+                    <p className="text-[11px] font-black text-slate-300 uppercase leading-none mb-1.5 tracking-wider">Người giám sát thực hiện</p>
                     <p className="font-black text-slate-800 text-[16px] truncate">{selectedSession.observer}</p>
                   </div>
                 </div>
@@ -503,6 +527,16 @@ const App: React.FC = () => {
                           <p className="text-[14px] font-bold text-slate-600">{obs.profession}</p>
                         </div>
                       </div>
+
+                      {obs.patientType && (
+                        <div className="flex gap-3">
+                          <Users className="text-slate-300 shrink-0" size={16} />
+                          <div>
+                            <p className="text-[10px] font-black text-slate-300 uppercase mb-0.5">Khu vực</p>
+                            <p className="text-[14px] font-bold text-slate-600">{obs.patientType}</p>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="flex gap-3">
                         <Calendar className="text-slate-300 shrink-0" size={16} />

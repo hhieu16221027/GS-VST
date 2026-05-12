@@ -1,19 +1,22 @@
 
 import React from 'react';
-import { Observation, Action, Indication, Profession, Procedure } from '../types';
+import { Observation, Action, Indication, Profession, Procedure, Department } from '../types';
 import { PROFESSIONS, INDICATIONS, ACTIONS, NON_HYGIENE_ACTIONS } from '../constants';
-import { Trash2, User, ClipboardList, Activity, CheckCircle, CheckSquare, Square } from 'lucide-react';
+import { Trash2, User, ClipboardList, Activity, CheckCircle, CheckSquare, Square, Users } from 'lucide-react';
 
 interface ObservationRowProps {
   observation: Observation;
   onUpdate: (id: string, updates: Partial<Observation>) => void;
   onDelete: (id: string) => void;
   index: number;
+  department: Department;
 }
 
-const ObservationRow: React.FC<ObservationRowProps> = ({ observation, onUpdate, onDelete, index }) => {
+const ObservationRow: React.FC<ObservationRowProps> = ({ observation, onUpdate, onDelete, index, department }) => {
   const isNoHygiene = NON_HYGIENE_ACTIONS.includes(observation.action);
   const selectedIndications = observation.indications || [];
+
+  const showPatientType = ["Nội - Nhiễm", "Ngoại tổng hợp", "Phụ sản", "Nhi"].includes(department);
 
   const toggleIndication = (ind: Indication) => {
     let next: Indication[];
@@ -83,11 +86,36 @@ const ObservationRow: React.FC<ObservationRowProps> = ({ observation, onUpdate, 
           </div>
         </div>
 
-        {/* 2. Chỉ định */}
+        {/* 2. Khu vực (Chỉ hiện cho một số khoa) */}
+        {showPatientType && (
+          <div className="space-y-3 animate-in fade-in slide-in-from-top-1">
+            <label className="flex items-center gap-2 text-[16px] font-black text-slate-400 uppercase tracking-widest">
+              <Users size={16} className="text-blue-500" /> 2. KHU VỰC <span className="text-red-500 font-black">*</span>
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              {["Nội trú", "Ngoại trú"].map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => onUpdate(observation.id, { patientType: type as any })}
+                  className={`py-3 text-[16px] font-black rounded-xl border transition-all ${
+                    observation.patientType === type 
+                      ? 'bg-blue-600 border-blue-600 text-white shadow-lg' 
+                      : 'bg-white border-gray-200 text-slate-500'
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 3. Chỉ định */}
         <div className="space-y-3">
           <div className="flex flex-col gap-1">
             <label className="flex items-center gap-2 text-[16px] font-black text-slate-400 uppercase tracking-widest leading-tight">
-              <ClipboardList size={16} className="text-indigo-500" /> 2. Chỉ định <span className="text-red-500 font-black">*</span>
+              <ClipboardList size={16} className="text-indigo-500" /> {showPatientType ? '3' : '2'}. Chỉ định <span className="text-red-500 font-black">*</span>
             </label>
             <span className="text-[12px] font-bold text-slate-400 lowercase italic ml-6 -mt-0.5 mb-1">(Chọn một hoặc nhiều)</span>
           </div>
@@ -117,10 +145,10 @@ const ObservationRow: React.FC<ObservationRowProps> = ({ observation, onUpdate, 
           </div>
         </div>
 
-        {/* 3. Hành động */}
+        {/* 4. Hành động */}
         <div className="space-y-3">
           <label className="flex items-center gap-2 text-[16px] font-black text-slate-400 uppercase tracking-widest">
-            <Activity size={16} className="text-teal-500" /> 3. Hành động
+            <Activity size={16} className="text-teal-500" /> {showPatientType ? '4' : '3'}. Hành động
           </label>
           <div className="grid grid-cols-1 gap-3">
             {ACTIONS.map((act) => (
@@ -131,7 +159,7 @@ const ObservationRow: React.FC<ObservationRowProps> = ({ observation, onUpdate, 
                 className={`flex items-center justify-between px-6 py-4 text-left text-[16px] rounded-2xl border transition-all leading-tight ${
                   observation.action === act
                     ? 'bg-teal-600 border-teal-600 text-white font-black shadow-xl'
-                    : 'bg-white border-gray-100 text-slate-500 shadow-sm'
+                    : 'bg-white border-gray-200 text-slate-500 shadow-sm'
                 }`}
               >
                 <span>{act}</span>
@@ -143,10 +171,10 @@ const ObservationRow: React.FC<ObservationRowProps> = ({ observation, onUpdate, 
           </div>
         </div>
 
-        {/* 4. Quy trình */}
+        {/* 5. Quy trình */}
         <div className="space-y-3">
           <label className="flex items-center gap-2 text-[16px] font-black text-slate-400 uppercase tracking-widest">
-            <CheckCircle size={16} className="text-green-500" /> 4. Quy trình
+            <CheckCircle size={16} className="text-green-500" /> {showPatientType ? '5' : '4'}. Quy trình
           </label>
           <div className={`grid grid-cols-2 gap-3 ${isNoHygiene ? 'opacity-20 pointer-events-none' : ''}`}>
             <button

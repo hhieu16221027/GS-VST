@@ -39,6 +39,7 @@ export interface Observation {
   indications: Indication[]; // Hỗ trợ nhiều chỉ định
   action: Action;
   procedure: Procedure;
+  patientType?: "Nội trú" | "Ngoại trú" | null;
 }
 
 export interface MonitoringSession {
