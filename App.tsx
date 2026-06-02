@@ -13,7 +13,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 
 
 const STORAGE_KEY = 'hand_hygiene_data_v2';
 const SCRIPT_URL_KEY = 'hand_hygiene_script_url_v2';
-const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzGv74IHYtiWbOXrLWL6dON472L1sEOJbWHEGOUvTI2hDtifr1k-WpjBlkxnKREm5ms/exec";
+const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPGwR1M0HFa64-9Aq7zPud60_wOgMOy4W2PHRU0P9OkFD8kZJc7hx_MFFnVb1XJnyvCw/exec";
 const DEFAULT_LOGO_FALLBACK = "https://raw.githubusercontent.com/hhieu16221027/VST-system/refs/heads/main/logo.png";
 
 const generateId = () => Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
