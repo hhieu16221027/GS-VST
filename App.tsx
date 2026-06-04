@@ -41,7 +41,7 @@ const App: React.FC = () => {
   const [observations, setObservations] = useState<Observation[]>([
     {
       id: generateId(),
-      profession: "DD/HS/KTV",
+      profession: "DD/HS/KTY",
       indications: [],
       action: "VST với cồn",
       procedure: "Đúng",
@@ -83,7 +83,7 @@ const App: React.FC = () => {
   const handleAddObservation = () => {
     setObservations([...observations, {
       id: generateId(),
-      profession: "DD/HS/KTV",
+      profession: "DD/HS/KTY",
       indications: [],
       action: "VST với cồn",
       procedure: "Đúng",
@@ -175,7 +175,7 @@ const App: React.FC = () => {
       setHasAttemptedSubmit(false);
       setObservations([{
         id: generateId(),
-        profession: "DD/HS/KTV",
+        profession: "DD/HS/KTY ",
         indications: [],
         action: "VST với cồn",
         procedure: "Đúng",
