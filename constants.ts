@@ -12,7 +12,7 @@ export const DEPARTMENTS: Department[] = [
   "Mắt"
 ];
 
-export const PROFESSIONS: Profession[] = ["Bác sĩ", "DD/HS/KTV", "Hộ lý", "Khác"];
+export const PROFESSIONS: Profession[] = ["Bác sĩ", "DD/HS/KTY", "Hộ lý", "Khác"];
 
 export const INDICATIONS: Indication[] = [
   "Trước tiếp xúc người bệnh",
