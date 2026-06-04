@@ -15,7 +15,7 @@ export type Department =
   | "Tai - Mũi - Họng" 
   | "Mắt";
 
-export type Profession = "Bác sĩ" | "DD/HS/KTV" | "Hộ lý" | "Khác";
+export type Profession = "Bác sĩ" | "DD/HS/KTY" | "Hộ lý" | "Khác";
 
 export type Indication = 
   | "Trước tiếp xúc người bệnh"
