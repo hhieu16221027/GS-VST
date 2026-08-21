@@ -7,13 +7,13 @@ import Login from './components/Login';
 import { 
   Plus, History, LayoutDashboard, FileText, Loader2, 
   CloudUpload, X, UserCircle, Briefcase, Zap, Calendar, ChevronRight,
-  TrendingUp, BarChart3, LogOut, Users
+  TrendingUp, BarChart3, LogOut, Users, Sliders, Settings, Trash2
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 
 const STORAGE_KEY = 'hand_hygiene_data_v2';
 const SCRIPT_URL_KEY = 'hand_hygiene_script_url_v2';
-const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwvAd_jXf4Ju3zwij96f9NnXxrbTffaofdeTZrhx-Zn8Wq2cUakQzV3ZyutLj-u0fXFJw/exec";
+const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz2AvYl4Ggnuh_gZU6YL7YNCww8go8929Z1eniwFQi5tUlZTLygTPAT4yyzTzTupn3IBw/exec";
 const DEFAULT_LOGO_FALLBACK = "https://raw.githubusercontent.com/hhieu16221027/VST-system/refs/heads/main/logo.png";
 
 const generateId = () => Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -24,6 +24,46 @@ const formatToVN = (dateStr: string) => {
   return `${day}/${month}/${year}`;
 };
 
+const getStartOfWeek = (dateStr: string) => {
+  const d = new Date(dateStr);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday is start of week
+  const monday = new Date(d.setDate(diff));
+  monday.setHours(0,0,0,0);
+  return monday;
+};
+
+const getEndOfWeek = (startDate: Date) => {
+  const d = new Date(startDate);
+  d.setDate(d.getDate() + 6);
+  d.setHours(23,59,59,999);
+  return d;
+};
+
+const getWeekLabel = (dateStr: string) => {
+  if (!dateStr) return 'Không xác định';
+  const start = getStartOfWeek(dateStr);
+  const end = getEndOfWeek(start);
+  const formatDayMonth = (d: Date) => {
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${day}/${month}`;
+  };
+  return `Tuần ${formatDayMonth(start)} - ${formatDayMonth(end)}/${end.getFullYear()}`;
+};
+
+const getShortWeekLabel = (dateStr: string) => {
+  if (!dateStr) return '';
+  const start = getStartOfWeek(dateStr);
+  const end = getEndOfWeek(start);
+  const formatDayMonth = (d: Date) => {
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${day}/${month}`;
+  };
+  return `${formatDayMonth(start)}-${formatDayMonth(end)}`;
+};
+
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [activeTab, setActiveTab] = useState<'form' | 'history' | 'stats'>('form');
@@ -31,6 +71,8 @@ const App: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [scriptUrl, setScriptUrl] = useState('');
+  const [tempUrl, setTempUrl] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [selectedSession, setSelectedSession] = useState<MonitoringSession | null>(null);
 
@@ -71,14 +113,32 @@ const App: React.FC = () => {
     // Cập nhật: Luôn ưu tiên dùng DEFAULT_SCRIPT_URL nếu nó khác với link cũ trong máy
     if (storedUrl !== DEFAULT_SCRIPT_URL) {
       setScriptUrl(DEFAULT_SCRIPT_URL);
+      setTempUrl(DEFAULT_SCRIPT_URL);
       localStorage.setItem(SCRIPT_URL_KEY, DEFAULT_SCRIPT_URL);
     } else if (storedUrl) {
       setScriptUrl(storedUrl);
+      setTempUrl(storedUrl);
     } else {
       setScriptUrl(DEFAULT_SCRIPT_URL);
+      setTempUrl(DEFAULT_SCRIPT_URL);
       localStorage.setItem(SCRIPT_URL_KEY, DEFAULT_SCRIPT_URL);
     }
   }, []);
+
+  const handleSaveUrl = () => {
+    if (!tempUrl.trim()) return;
+    setScriptUrl(tempUrl.trim());
+    localStorage.setItem(SCRIPT_URL_KEY, tempUrl.trim());
+    alert("Đã lưu cấu hình đường dẫn mới thành công!");
+    setShowSettings(false);
+  };
+
+  const handleResetUrl = () => {
+    setScriptUrl(DEFAULT_SCRIPT_URL);
+    setTempUrl(DEFAULT_SCRIPT_URL);
+    localStorage.setItem(SCRIPT_URL_KEY, DEFAULT_SCRIPT_URL);
+    alert("Đã khôi phục đường dẫn mặc định!");
+  };
 
   const handleAddObservation = () => {
     setObservations([...observations, {
@@ -100,6 +160,105 @@ const App: React.FC = () => {
     if (observations.length <= 1) return;
     setObservations(prev => prev.filter(obs => obs.id !== id));
   };
+
+  const handleDeleteObservationFromSession = (sessionId: string, observationId: string) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xoá lượt quan sát này khỏi chi tiết giám sát không?")) {
+      return;
+    }
+
+    const updatedHistory = history.map(session => {
+      if (session.id === sessionId) {
+        const updatedObs = session.observations.filter(o => o.id !== observationId);
+        return {
+          ...session,
+          observations: updatedObs
+        };
+      }
+      return session;
+    }).filter(session => session.observations.length > 0);
+
+    setHistory(updatedHistory);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedHistory));
+
+    if (selectedSession && selectedSession.id === sessionId) {
+      const updatedObs = selectedSession.observations.filter(o => o.id !== observationId);
+      if (updatedObs.length === 0) {
+        setSelectedSession(null);
+      } else {
+        setSelectedSession({
+          ...selectedSession,
+          observations: updatedObs
+        });
+      }
+    }
+  };
+
+  const getStatsByWeek = () => {
+    if (history.length === 0) return [];
+
+    const weeksMap: { 
+      [key: string]: { 
+        total: number; 
+        compliant: number; 
+        dateForSort: Date;
+        depts: { [deptName: string]: { total: number; compliant: number } }
+      } 
+    } = {};
+
+    history.forEach(session => {
+      const weekLabel = getWeekLabel(session.date);
+      const startOfWeek = getStartOfWeek(session.date);
+      
+      if (!weeksMap[weekLabel]) {
+        weeksMap[weekLabel] = { total: 0, compliant: 0, dateForSort: startOfWeek, depts: {} };
+      }
+
+      if (!weeksMap[weekLabel].depts[session.department]) {
+        weeksMap[weekLabel].depts[session.department] = { total: 0, compliant: 0 };
+      }
+
+      session.observations.forEach(obs => {
+        weeksMap[weekLabel].total += 1;
+        weeksMap[weekLabel].depts[session.department].total += 1;
+        if (!NON_HYGIENE_ACTIONS.includes(obs.action)) {
+          weeksMap[weekLabel].compliant += 1;
+          weeksMap[weekLabel].depts[session.department].compliant += 1;
+        }
+      });
+    });
+
+    const stats = Object.keys(weeksMap).map(weekLabel => {
+      const data = weeksMap[weekLabel];
+      const complianceRate = data.total > 0 ? parseFloat((data.compliant / data.total * 100).toFixed(1)) : 0;
+      
+      const deptBreakdown = Object.keys(data.depts).map(deptName => {
+        const dData = data.depts[deptName];
+        const rate = dData.total > 0 ? parseFloat((dData.compliant / dData.total * 100).toFixed(1)) : 0;
+        return {
+          deptName,
+          total: dData.total,
+          compliant: dData.compliant,
+          complianceRate: rate
+        };
+      }).sort((a, b) => b.complianceRate - a.complianceRate);
+
+      return {
+        weekLabel,
+        total: data.total,
+        compliant: data.compliant,
+        complianceRate,
+        dateForSort: data.dateForSort,
+        shortWeekLabel: getShortWeekLabel(data.dateForSort.toISOString().split('T')[0]),
+        deptBreakdown
+      };
+    }).sort((a, b) => b.dateForSort.getTime() - a.dateForSort.getTime());
+
+    return stats;
+  };
+
+  const [statsViewMode, setStatsViewMode] = useState<'week' | 'dept'>('week');
+  const [selectedWeekFilter, setSelectedWeekFilter] = useState<string>('all');
+  const [expandedWeeks, setExpandedWeeks] = useState<{ [weekLabel: string]: boolean }>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,10 +331,11 @@ const App: React.FC = () => {
       }
 
       setShowSuccess(true);
+      setActiveTab("history");
       setHasAttemptedSubmit(false);
       setObservations([{
         id: generateId(),
-        profession: "DD/HS/KTY ",
+        profession: "DD/HS/KTY",
         indications: [],
         action: "VST với cồn",
         procedure: "Đúng",
@@ -185,7 +345,6 @@ const App: React.FC = () => {
       
       setTimeout(() => {
         setShowSuccess(false);
-        setActiveTab('history');
       }, 1500);
 
     } catch (error) {
@@ -195,11 +354,15 @@ const App: React.FC = () => {
     }
   };
 
-  const getStatsByDepartment = () => {
+  const getStatsByDepartment = (weekFilter: string = 'all') => {
     if (history.length === 0) return [];
 
+    const filteredHistory = weekFilter === 'all'
+      ? history
+      : history.filter(h => getWeekLabel(h.date) === weekFilter);
+
     const stats = DEPARTMENTS.map(dept => {
-      const deptSessions = history.filter(h => h.department === dept);
+      const deptSessions = filteredHistory.filter(h => h.department === dept);
       const allObs = deptSessions.flatMap(h => h.observations);
       
       if (allObs.length === 0) return null;
@@ -229,7 +392,7 @@ const App: React.FC = () => {
     return stats;
   };
 
-  const deptStats = getStatsByDepartment();
+  const deptStats = getStatsByDepartment(selectedWeekFilter);
 
   const handleLogout = () => {
     localStorage.removeItem(AUTH_KEY);
@@ -273,15 +436,14 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 pt-8">
-        {activeTab === 'form' && (
+        <main className="max-w-7xl mx-auto px-6 pt-8">
+        {activeTab === "form" && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
             <div className="px-2 mb-6 text-center">
               <h2 className="text-[18px] font-black text-blue-800/40 uppercase tracking-[0.2em] leading-relaxed">
                 Giám sát vệ sinh tay <br /> thường quy
               </h2>
             </div>
-
             <form onSubmit={handleSubmit} className="space-y-8">
               <section className="bg-white rounded-[28px] shadow-sm border border-sky-100 p-6 space-y-6">
                 <div className="flex items-center gap-3 text-blue-600 pb-3 border-b border-sky-50">
@@ -340,12 +502,64 @@ const App: React.FC = () => {
                     {isSubmitting ? <Loader2 className="animate-spin" size={24} /> : <CloudUpload size={24} />}
                     {isSubmitting ? 'ĐANG GỬI DỮ LIỆU...' : 'HOÀN TẤT & GỬI'}
                   </button>
+
+                  {/* Cấu hình nâng cao (Đường dẫn Apps Script) */}
+                  {false && currentUser?.role === 'admin' && (
+                    <div className="bg-white rounded-[24px] border border-sky-100 p-5 shadow-sm mt-4">
+                      <button
+                        type="button"
+                        onClick={() => setShowSettings(!showSettings)}
+                        className="w-full flex items-center justify-between text-slate-500 font-bold transition-all outline-none"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Sliders size={18} className="text-blue-500" />
+                          <span className="text-[14px] uppercase tracking-wide">Cấu hình kết nối Google Sheet</span>
+                        </div>
+                        <ChevronRight size={18} className={`transform transition-transform text-slate-400 ${showSettings ? 'rotate-90' : ''}`} />
+                      </button>
+                      {showSettings && (
+                        <div className="mt-4 pt-4 border-t border-sky-50 space-y-4">
+                          <div className="space-y-2">
+                            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block">Đường dẫn Google Apps Script hiện tại</label>
+                            <input
+                              type="text"
+                              required
+                              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[12px] font-medium outline-none focus:ring-2 focus:ring-blue-500 text-slate-600 font-mono"
+                              value={tempUrl}
+                              onChange={(e) => setTempUrl(e.target.value)}
+                              placeholder="Nhập đường dẫn Google Apps Script"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={handleSaveUrl}
+                              className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl text-[13px] hover:bg-blue-700 active:scale-95 transition-all text-center uppercase shadow-sm"
+                            >
+                              Lưu đường dẫn
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleResetUrl}
+                              className="py-3 px-4 bg-slate-100 text-slate-500 hover:bg-slate-200 font-bold rounded-xl text-[13px] active:scale-95 transition-all text-center uppercase"
+                              title="Đặt lại mặc định"
+                            >
+                              Mặc định
+                            </button>
+                          </div>
+                          <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl text-blue-800 text-[11px] leading-relaxed">
+                            📌 Bạn có thể dán trực tiếp đường dẫn Google Apps Script (Web App URL) mới vào ô trên và nhấp <strong>LƯU ĐƯỜNG DẪN</strong> để ứng dụng kết nối trực tiếp đến trang tính mới của bạn.
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
               </div>
             </form>
           </div>
-        )}
 
-        {activeTab === 'history' && (
+        )}
+        {activeTab === "history" && (
           <div className="space-y-8 animate-in slide-in-from-right-4">
              <div className="flex justify-between items-center px-2 mb-6">
                 <h2 className="text-[22px] font-black text-blue-900 uppercase">Nhật ký</h2>
@@ -377,25 +591,63 @@ const App: React.FC = () => {
                </div>
              )}
           </div>
-        )}
 
-        {activeTab === 'stats' && (
+        )}
+        {activeTab === "stats" && (
           <div className="space-y-8 animate-in zoom-in-95 pb-10">
-             <div className="px-2 mb-6">
-                <h2 className="text-[22px] font-black text-blue-900 uppercase tracking-tight">Báo cáo giám sát</h2>
-                <p className="text-[14px] font-bold text-slate-400 mt-1 uppercase">Tổng hợp theo từng khoa được giám sát</p>
+             <div className="px-2 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                   <h2 className="text-[22px] font-black text-blue-900 uppercase tracking-tight">Báo cáo giám sát</h2>
+                   <p className="text-[14px] font-bold text-slate-400 mt-1 uppercase">
+                     {'Tổng hợp theo từng khoa được giám sát'}
+                   </p>
+                </div>
+                
              </div>
              
-             {deptStats.length === 0 ? (
+             {history.length === 0 ? (
                <div className="text-center py-24 bg-white rounded-[32px] border border-sky-100 shadow-sm space-y-4">
                  <div className="w-16 h-16 bg-sky-50 rounded-full flex items-center justify-center mx-auto text-sky-300">
                     <BarChart3 size={32} />
                  </div>
                  <p className="text-sky-400 font-black uppercase text-[14px] tracking-widest">Chưa có dữ liệu thống kê</p>
                </div>
-             ) : (
-               <div className="space-y-10">
-                 {deptStats.map((dept: any) => (
+             ) : (                <div className="space-y-8">
+                  {/* Bộ lọc Tuần cho báo cáo Theo Khoa */}
+                  <div className="bg-white rounded-3xl p-5 border border-sky-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <h4 className="text-[13px] font-black text-slate-400 uppercase tracking-wider">Lọc báo cáo theo tuần</h4>
+                      <p className="text-[11px] text-slate-400 font-bold uppercase">Xem kết quả của từng khoa theo khoảng thời gian tuần</p>
+                    </div>
+                    <div className="relative">
+                      <select
+                        value={selectedWeekFilter}
+                        onChange={(e) => setSelectedWeekFilter(e.target.value)}
+                        className="w-full sm:w-64 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-[13px] font-black text-blue-900 uppercase outline-none focus:ring-2 focus:ring-blue-500 appearance-none pr-10 cursor-pointer"
+                      >
+                        <option value="all">TẤT CẢ CÁC TUẦN</option>
+                        {getStatsByWeek().map((w: any) => (
+                          <option key={w.weekLabel} value={w.weekLabel}>
+                            {w.weekLabel.toUpperCase()}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-blue-600 text-[10px]">
+                        ▼
+                      </div>
+                    </div>
+                  </div>
+
+                  {deptStats.length === 0 ? (
+                    <div className="text-center py-16 bg-white rounded-[32px] border border-sky-100 shadow-sm space-y-4">
+                      <div className="w-12 h-12 bg-sky-50 rounded-full flex items-center justify-center mx-auto text-sky-300">
+                         <BarChart3 size={24} />
+                      </div>
+                      <p className="text-sky-400 font-black uppercase text-[12px] tracking-widest">Không có dữ liệu trong tuần đã chọn</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-10">
+                      {deptStats.map((dept: any) => (
                    <div key={dept.deptName} className="bg-white rounded-[32px] shadow-sm border border-sky-100 overflow-hidden">
                       <div className="bg-blue-900 p-6 flex items-center justify-between">
                         <h3 className="text-[18px] font-black text-white uppercase tracking-tight leading-tight max-w-[70%]">
@@ -422,27 +674,6 @@ const App: React.FC = () => {
                            </p>
                         </div>
 
-                        <div className="space-y-4">
-                          <h4 className="text-[14px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Cơ hội theo đối tượng</h4>
-                          <div className="h-[200px] bg-slate-50/50 rounded-3xl p-4">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <BarChart data={dept.profStats} layout="vertical" margin={{ left: -10, right: 20 }}>
-                                <XAxis type="number" hide />
-                                <YAxis dataKey="name" type="category" width={80} fontSize={12} fontWeight="900" axisLine={false} tickLine={false} />
-                                <Tooltip 
-                                  cursor={{fill: 'rgba(59, 130, 246, 0.05)'}}
-                                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 20px rgba(0,0,0,0.1)', padding: '12px' }}
-                                />
-                                <Bar dataKey="totalObs" name="Tổng cơ hội" radius={[0, 8, 8, 0]} barSize={16}>
-                                  {dept.profStats.map((entry: any, index: number) => (
-                                    <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#3b82f6' : '#60a5fa'} />
-                                  ))}
-                                </Bar>
-                              </BarChart>
-                            </ResponsiveContainer>
-                          </div>
-                        </div>
-
                         <div className="grid grid-cols-2 gap-3">
                            {dept.profStats.map((prof: any) => (
                              <div key={prof.name} className="p-4 rounded-[24px] border border-slate-50 bg-slate-50/30 flex flex-col gap-1">
@@ -458,9 +689,11 @@ const App: React.FC = () => {
                         </div>
                    </div>
                  </div>
-                 ))}
-               </div>
-             )}
+                  ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="pt-8 pb-12">
                 <button 
@@ -478,141 +711,24 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {selectedSession && (
-        <div className="fixed inset-0 z-[100] flex flex-col justify-end">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSelectedSession(null)} />
-          <div className="relative bg-white w-full max-h-[92vh] rounded-t-[40px] shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300">
-            <div className="bg-slate-50 px-6 py-6 border-b border-slate-100 flex items-center justify-between">
-              <div>
-                <h2 className="text-[18px] font-black text-blue-900 uppercase tracking-tight leading-none mb-1">Chi tiết giám sát</h2>
-                <p className="text-slate-400 text-[12px] font-bold uppercase tracking-widest">{selectedSession.department} • {formatToVN(selectedSession.date)}</p>
-              </div>
-              <button onClick={() => setSelectedSession(null)} className="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-400 active:scale-90 shadow-sm">
-                <X size={20} />
-              </button>
-            </div>
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-6 py-3 flex justify-between items-center pb-safe shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)] z-50">
+        <button onClick={() => setActiveTab('form')} className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'form' ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
+          <FileText size={24} className={activeTab === 'form' ? 'fill-blue-100' : ''} />
+          <span className="text-[10px] font-black uppercase tracking-widest">Giám sát</span>
+        </button>
+        <button onClick={() => setActiveTab('history')} className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'history' ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
+          <History size={24} className={activeTab === 'history' ? 'fill-blue-100' : ''} />
+          <span className="text-[10px] font-black uppercase tracking-widest">Nhật ký</span>
+        </button>
+        <button onClick={() => setActiveTab('stats')} className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'stats' ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
+          <BarChart3 size={24} className={activeTab === 'stats' ? 'fill-blue-100' : ''} />
+          <span className="text-[10px] font-black uppercase tracking-widest">Báo cáo</span>
+        </button>
+      </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50 pb-32">
-              <div className="grid grid-cols-1">
-                <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-4">
-                  <UserCircle className="text-blue-500" size={24} />
-                  <div>
-                    <p className="text-[11px] font-black text-slate-300 uppercase leading-none mb-1.5 tracking-wider">Người giám sát thực hiện</p>
-                    <p className="font-black text-slate-800 text-[16px] truncate">{selectedSession.observer}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 block">DANH SÁCH CƠ HỘI ĐÃ QUAN SÁT ({selectedSession.observations.length})</label>
-                {selectedSession.observations.map((obs, idx) => (
-                  <div key={obs.id} className="bg-white rounded-[28px] p-5 border border-slate-100 shadow-sm space-y-4">
-                    <div className="flex items-center justify-between border-b border-slate-50 pb-3">
-                      <div className="flex items-center gap-3">
-                        <span className="w-6 h-6 bg-blue-600 text-white rounded-lg flex items-center justify-center text-[11px] font-black">{idx + 1}</span>
-                        <h4 className="font-black text-slate-800 uppercase text-[14px] tracking-wider truncate max-w-[180px]">{obs.staffName}</h4>
-                      </div>
-                      <div className={`px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest ${
-                        obs.procedure === "Đúng" ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
-                      }`}>
-                        {obs.procedure === "Đúng" ? 'ĐÚNG' : (obs.procedure === "Sai" ? 'SAI' : 'N/A')}
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                       <div className="flex gap-3">
-                        <Briefcase className="text-slate-300 shrink-0" size={16} />
-                        <div>
-                          <p className="text-[10px] font-black text-slate-300 uppercase mb-0.5">Đối tượng</p>
-                          <p className="text-[14px] font-bold text-slate-600">{obs.profession}</p>
-                        </div>
-                      </div>
-
-                      {obs.patientType && (
-                        <div className="flex gap-3">
-                          <Users className="text-slate-300 shrink-0" size={16} />
-                          <div>
-                            <p className="text-[10px] font-black text-slate-300 uppercase mb-0.5">Khu vực</p>
-                            <p className="text-[14px] font-bold text-slate-600">{obs.patientType}</p>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex gap-3">
-                        <Calendar className="text-slate-300 shrink-0" size={16} />
-                        <div>
-                          <p className="text-[10px] font-black text-slate-300 uppercase mb-0.5">Chỉ định</p>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {obs.indications.map((ind, i) => (
-                              <span key={i} className="bg-indigo-50 text-indigo-500 border border-indigo-100 px-2.5 py-1 rounded-lg text-[12px] font-bold leading-none">
-                                {ind}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-3">
-                        <Zap className="text-slate-300 shrink-0" size={16} />
-                        <div>
-                          <p className="text-[10px] font-black text-slate-300 uppercase mb-0.5">Hành động</p>
-                          <p className={`text-[14px] font-black ${
-                            NON_HYGIENE_ACTIONS.includes(obs.action) ? 'text-rose-600' : 'text-blue-600'
-                          }`}>
-                            {obs.action}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            <div className="p-6 bg-white border-t border-slate-100 safe-bottom">
-              <button onClick={() => setSelectedSession(null)} className="w-full py-4 bg-blue-900 text-white rounded-[20px] font-black shadow-xl active:scale-95 transition-all">
-                ĐÓNG CHI TIẾT
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-2xl border-t border-sky-100 flex justify-around items-center px-4 py-2 safe-bottom z-50 shadow-[0_-20px_50px_rgba(0,0,0,0.05)]">
-        {[
-          { id: 'form', icon: FileText, label: 'Nhập' },
-          { id: 'history', icon: History, label: 'Nhật ký' },
-          { id: 'stats', icon: LayoutDashboard, label: 'Báo cáo' }
-        ].map(tab => (
-          <button 
-            key={tab.id} 
-            onClick={() => { setActiveTab(tab.id as any); window.scrollTo(0, 0); }} 
-            className={`flex flex-col items-center gap-1 py-2 px-5 rounded-[18px] transition-all ${activeTab === tab.id ? 'text-blue-600 bg-blue-50 font-black' : 'text-sky-400'}`}
-          >
-            <tab.icon size={24} strokeWidth={activeTab === tab.id ? 3 : 2} />
-            <span className="text-[14px] uppercase font-bold">{tab.label}</span>
-          </button>
-        ))}
-      </nav>
-
-      {showSuccess && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-blue-950/40 backdrop-blur-md animate-in fade-in">
-          <div className="bg-white rounded-[40px] p-8 text-center shadow-2xl animate-in zoom-in-95 max-w-sm w-[85%] border border-white">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 text-green-600">
-              <img src="https://cdn-icons-png.flaticon.com/512/190/190411.png" className="w-8 h-8" />
-            </div>
-            <h3 className="text-[24px] font-black text-slate-800 mb-2">Thành công</h3>
-            <p className="text-slate-400 font-bold text-[16px] uppercase">Dữ liệu đã được ghi nhận.</p>
-          </div>
-        </div>
-      )}
-
-      <style dangerouslySetInnerHTML={{ __html: `
-        .safe-top { padding-top: calc(env(safe-area-inset-top) + 15px); }
-        .safe-bottom { padding-bottom: calc(env(safe-area-inset-bottom) + 8px); }
-      `}} />
     </div>
   );
-};
+}
 
 export default App;

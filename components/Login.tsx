@@ -21,7 +21,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
     // Giả lập độ trễ mạng
     setTimeout(() => {
-      const user = ALLOWED_USERS.find(u => u.username === username && u.password === password);
+      const cleanUsername = username.trim().toLowerCase();
+      const cleanPassword = password.trim();
+      const user = ALLOWED_USERS.find(u => u.username === cleanUsername && u.password === cleanPassword);
       
       if (user) {
         const userData: UserType = {
@@ -82,6 +84,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck="false"
                   className="w-full pl-14 pr-5 py-4 bg-sky-50/50 border-2 border-transparent rounded-[20px] text-[16px] focus:border-blue-500 focus:bg-white outline-none transition-all font-bold"
                   placeholder="Nhập tên đăng nhập"
                 />
