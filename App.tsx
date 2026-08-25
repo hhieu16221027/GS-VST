@@ -69,6 +69,8 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'form' | 'history' | 'stats'>('form');
   const [history, setHistory] = useState<MonitoringSession[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+
   const [showSuccess, setShowSuccess] = useState(false);
   const [scriptUrl, setScriptUrl] = useState('');
   const [tempUrl, setTempUrl] = useState('');
@@ -319,7 +321,8 @@ const App: React.FC = () => {
           indication: (obs.indications || []).join(', '),
           action: obs.action,
           procedure: obs.procedure || 'N/A',
-          createdAt: session.createdAt
+          createdAt: session.createdAt,
+          obsId: obs.id
         }));
 
         await fetch(scriptUrl, {
@@ -393,6 +396,51 @@ const App: React.FC = () => {
   };
 
   const deptStats = getStatsByDepartment(selectedWeekFilter);
+
+
+  const handleSyncAll = async () => {
+    if (!scriptUrl) {
+      alert("Chưa có cấu hình Google Sheet URL!");
+      return;
+    }
+    if (!confirm("Bạn có chắc chắn muốn đồng bộ lại toàn bộ dữ liệu (" + history.length + " phiên) lên Google Sheet không?")) {
+      return;
+    }
+    
+    setIsSyncing(true);
+    let successCount = 0;
+    try {
+      for (const session of history) {
+        const rows = session.observations.map(obs => ({
+          date: formatToVN(session.date),
+          observer: session.observer,
+          department: session.department,
+          staffName: obs.staffName || '---',
+          profession: obs.profession,
+          khuVuc: obs.patientType || 'N/A',
+          indication: (obs.indications || []).join(', '),
+          action: obs.action,
+          procedure: obs.procedure || 'N/A',
+          createdAt: session.createdAt,
+          obsId: obs.id
+        }));
+
+        await fetch(scriptUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ rows })
+        });
+        successCount++;
+      }
+      alert(`Đã đồng bộ thành công ${successCount} phiên giám sát lên hệ thống!`);
+    } catch (error) {
+      console.error("Lỗi đồng bộ:", error);
+      alert("Có lỗi xảy ra trong quá trình đồng bộ!");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem(AUTH_KEY);
@@ -561,10 +609,22 @@ const App: React.FC = () => {
         )}
         {activeTab === "history" && (
           <div className="space-y-8 animate-in slide-in-from-right-4">
-             <div className="flex justify-between items-center px-2 mb-6">
+             
+             <div className="flex justify-between items-center px-2 mb-6 gap-2 flex-wrap">
                 <h2 className="text-[22px] font-black text-blue-900 uppercase">Nhật ký</h2>
-                <button onClick={() => { if(confirm("Xóa toàn bộ lịch sử?")) { localStorage.removeItem(STORAGE_KEY); setHistory([]); } }} className="text-[14px] font-bold text-red-500 bg-white px-4 py-2 rounded-full uppercase border border-red-100 shadow-sm">Xóa tất cả</button>
+                <div className="flex gap-2">
+                  <button 
+                    disabled={isSyncing || history.length === 0}
+                    onClick={handleSyncAll} 
+                    className="flex items-center gap-2 text-[14px] font-bold text-blue-600 bg-white px-4 py-2 rounded-full uppercase border border-blue-100 shadow-sm disabled:opacity-50"
+                  >
+                    {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <CloudUpload size={16} />}
+                    Đồng bộ
+                  </button>
+                  <button onClick={() => { if(confirm("Xóa toàn bộ lịch sử?")) { localStorage.removeItem(STORAGE_KEY); setHistory([]); } }} className="text-[14px] font-bold text-red-500 bg-white px-4 py-2 rounded-full uppercase border border-red-100 shadow-sm">Xóa tất cả</button>
+                </div>
              </div>
+
              {history.length === 0 ? (
                <div className="bg-white rounded-[28px] py-20 border-2 border-dashed border-sky-100 text-center space-y-5">
                  <History className="mx-auto text-sky-200" size={48} />

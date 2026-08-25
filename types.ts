@@ -49,4 +49,5 @@ export interface MonitoringSession {
   department: Department;
   observations: Observation[];
   createdAt: string;
+  isSynced?: boolean;
 }
