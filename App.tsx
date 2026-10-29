@@ -64,6 +64,121 @@ const getShortWeekLabel = (dateStr: string) => {
   return `${formatDayMonth(start)}-${formatDayMonth(end)}`;
 };
 
+const formatObservationRows = (session: MonitoringSession) => {
+  return session.observations.map((obs, idx) => {
+    const isT1 = obs.indications?.includes("Trước tiếp xúc người bệnh");
+    const isT2 = obs.indications?.includes("Trước thủ thuật vô khuẩn/sạch");
+    const isT3 = obs.indications?.includes("Sau khi có nguy cơ phơi nhiễm máu/dịch cơ thể");
+    const isT4 = obs.indications?.includes("Sau tiếp xúc người bệnh");
+    const isT5 = obs.indications?.includes("Sau tiếp xúc môi trường xung quanh người bệnh");
+    const isCompliant = !NON_HYGIENE_ACTIONS.includes(obs.action);
+
+    const dateFormatted = formatToVN(session.date);
+    const staffName = obs.staffName || '---';
+    const khuVuc = obs.patientType || 'N/A';
+    const indicationStr = (obs.indications || []).join(', ');
+    const procedureVal = obs.procedure || 'N/A';
+    // Cột J đến N: nếu có thời điểm thì điền số 1, không có thì để trống ""
+    const t1Val = isT1 ? 1 : '';
+    const t2Val = isT2 ? 1 : '';
+    const t3Val = isT3 ? 1 : '';
+    const t4Val = isT4 ? 1 : '';
+    const t5Val = isT5 ? 1 : '';
+    const complianceVal = isCompliant ? 'Có' : 'Không';
+    const sttVal = idx + 1;
+    const obsId = obs.id;
+
+    const rowArray = [
+      dateFormatted,
+      session.observer,
+      session.department,
+      staffName,
+      obs.profession,
+      indicationStr,
+      obs.action,
+      procedureVal,
+      session.createdAt,
+      t1Val,
+      t2Val,
+      t3Val,
+      t4Val,
+      t5Val,
+      complianceVal,
+      sttVal,
+      khuVuc,
+      obsId
+    ];
+
+    return {
+      // 18 Cột chuẩn theo đúng tiêu đề tiếng Việt của Sheet "BC VST" (A đến R)
+      "Ngày giám sát": dateFormatted,
+      "Nhân viên giám sát": session.observer,
+      "Khoa được giám sát": session.department,
+      "Nhân viên được giám sát": staffName,
+      "Chức danh": obs.profession,
+      "Chỉ định": indicationStr,
+      "Hành động": obs.action,
+      "Quy trình": procedureVal,
+      "Thời gian báo cáo": session.createdAt,
+      "Trước tiếp xúc người bệnh": t1Val,
+      "Trước thủ thuật vô khuẩn/sạch": t2Val,
+      "Sau khi có nguy cơ phơi nhiễm máu/dịch cơ thể": t3Val,
+      "Sau tiếp xúc người bệnh": t4Val,
+      "Sau tiếp xúc môi trường xung quanh người bệnh": t5Val,
+      "Có tuân thủ VST": complianceVal,
+      "STT": sttVal,
+      "KHU VỰC": khuVuc,
+      "Column 18": obsId,
+
+      // Các biến thể tiếng Việt thông dụng
+      "Tuân thủ": complianceVal,
+      "Tuân thủ VST": complianceVal,
+      "Khu vực": khuVuc,
+      "Mã giám sát": obsId,
+      "Thời điểm 1": t1Val,
+      "Thời điểm 2": t2Val,
+      "Thời điểm 3": t3Val,
+      "Thời điểm 4": t4Val,
+      "Thời điểm 5": t5Val,
+
+      // Các thuộc tính tiếng Anh tương thích với các phiên bản script khác nhau
+      date: dateFormatted,
+      observer: session.observer,
+      department: session.department,
+      staffName,
+      profession: obs.profession,
+      indication: indicationStr,
+      indications: obs.indications || [],
+      action: obs.action,
+      procedure: procedureVal,
+      createdAt: session.createdAt,
+      t1: t1Val,
+      t2: t2Val,
+      t3: t3Val,
+      t4: t4Val,
+      t5: t5Val,
+      T1: t1Val,
+      T2: t2Val,
+      T3: t3Val,
+      T4: t4Val,
+      T5: t5Val,
+      compliance: complianceVal,
+      tuanThu: complianceVal,
+      isCompliant: complianceVal,
+      stt: sttVal,
+      khuVuc,
+      patientType: khuVuc,
+      obsId,
+      column18: obsId,
+
+      // Định dạng mảng cho script nhận trực tiếp mảng
+      asArray: rowArray,
+      values: rowArray,
+      row: rowArray
+    };
+  });
+};
+
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [activeTab, setActiveTab] = useState<'form' | 'history' | 'stats'>('form');
@@ -322,25 +437,13 @@ const App: React.FC = () => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newHistory));
 
       if (scriptUrl) {
-        const rows = session.observations.map(obs => ({
-          date: formatToVN(session.date),
-          observer: session.observer,
-          department: session.department,
-          staffName: obs.staffName || '---',
-          profession: obs.profession,
-          khuVuc: obs.patientType || 'N/A',
-          indication: (obs.indications || []).join(', '),
-          action: obs.action,
-          procedure: obs.procedure || 'N/A',
-          createdAt: session.createdAt,
-          obsId: obs.id
-        }));
+        const rows = formatObservationRows(session);
 
         await fetch(scriptUrl, {
           method: 'POST',
           mode: 'no-cors', 
           headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({ rows })
+          body: JSON.stringify({ sheetName: "BC VST", rows, data: rows })
         });
       }
 
@@ -422,25 +525,13 @@ const App: React.FC = () => {
     let successCount = 0;
     try {
       for (const session of history) {
-        const rows = session.observations.map(obs => ({
-          date: formatToVN(session.date),
-          observer: session.observer,
-          department: session.department,
-          staffName: obs.staffName || '---',
-          profession: obs.profession,
-          khuVuc: obs.patientType || 'N/A',
-          indication: (obs.indications || []).join(', '),
-          action: obs.action,
-          procedure: obs.procedure || 'N/A',
-          createdAt: session.createdAt,
-          obsId: obs.id
-        }));
+        const rows = formatObservationRows(session);
 
         await fetch(scriptUrl, {
           method: 'POST',
           mode: 'no-cors',
           headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({ rows })
+          body: JSON.stringify({ sheetName: "BC VST", rows, data: rows })
         });
         successCount++;
       }
@@ -459,7 +550,7 @@ const App: React.FC = () => {
   };
 
   if (!currentUser) {
-    return <Login onLogin={(user) => {
+    return <Login onLogin={(user: UserType) => {
       setCurrentUser(user);
       setObserver(user.fullName);
     }} />;
@@ -563,7 +654,7 @@ const App: React.FC = () => {
                   </button>
 
                   {/* Cấu hình nâng cao (Đường dẫn Apps Script) */}
-                  {false && currentUser?.role === 'admin' && (
+                  {currentUser?.role === 'admin' && (
                     <div className="bg-white rounded-[24px] border border-sky-100 p-5 shadow-sm mt-4">
                       <button
                         type="button"
